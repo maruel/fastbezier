@@ -16,9 +16,9 @@ import (
 )
 
 func compare() {
-	evaluators := []rejected.Evaluator16{
+	evaluators := []rejected.Evaluator{
 		rejected.MakePrecise(0.42, 0, 0.58, 1),
-		fastbezier.MakeLUT(0.42, 0, 0.58, 1, 0),
+		fastbezier.Make(0.42, 0, 0.58, 1, 0),
 		rejected.MakePointsTrimmed(0.42, 0, 0.58, 1, 0),
 		rejected.MakePointsFull(0.42, 0, 0.58, 1, 0),
 		rejected.MakeTableTrimmed(0.42, 0, 0.58, 1, 0),
@@ -27,20 +27,21 @@ func compare() {
 	for _, e := range evaluators {
 		fmt.Printf("%s\n", e)
 	}
-	fmt.Printf("    x    Slow  Pnts PtsFl Table  TblFl   Pnts PtsFl Table TblFl     Points  PtsFull    Table  TablFll\n")
+	fmt.Printf("     x   Slow   LUT  Pnts PtsFl Table TblFl     LUT  Pnts PtsFl Table TblFl        LUT   Points  PtsFull    Table  TablFll\n")
 	r := make([]uint16, len(evaluators))
 	delta := make([]int, len(evaluators)-1)
 	relDelta := make([]string, len(evaluators)-1)
-	for i := 0; i <= 32; i++ {
-		x := i * 65535 / 32
+	const steps = 50
+	for i := 0; i <= steps; i++ {
+		x := i * 65535 / steps
 		for j, e := range evaluators {
-			r[j] = e.Eval16(uint16(x))
+			r[j] = e.Eval(uint16(x))
 			if j != 0 {
 				delta[j-1] = int(r[0]) - int(r[j])
 				if delta[j-1] == 0 {
 					relDelta[j-1] = "0"
 				} else {
-					relDelta[j-1] = fmt.Sprintf("%2.2f%%", 100.*float32(delta[j-1])/float32(r[0]))
+					relDelta[j-1] = fmt.Sprintf("%2.2f%%", 100.*float32(delta[j-1])/65535.)
 				}
 			}
 		}
@@ -82,7 +83,7 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
-	f := fastbezier.MakeLUT(float32(x0), float32(y0), float32(x1), float32(y1), uint16(steps))
+	f := fastbezier.Make(float32(x0), float32(y0), float32(x1), float32(y1), uint16(steps))
 	_, err = fmt.Printf("%s\n", f)
 	return err
 }

@@ -19,10 +19,10 @@ import (
 // points [0, 0] and [65535, 65535].
 type LUT []uint16
 
-// MakeLUT returns a LUT object.
+// Make returns a LUT object.
 //
 // Memory allocation is 2*(steps+1) bytes.
-func MakeLUT(x0, y0, x1, y1 float32, steps uint16) LUT {
+func Make(x0, y0, x1, y1 float32, steps uint16) LUT {
 	if steps < 3 {
 		// Make invalid `steps` value silently work instead of crashing or inducing
 		// unnecessary error handling.
@@ -33,7 +33,7 @@ func MakeLUT(x0, y0, x1, y1 float32, steps uint16) LUT {
 	for i := range l {
 		l[i] = internal.FloatToUint16(internal.CubicBezier(x0, y0, x1, y1, float32(i)*stepsm1) * 65535.)
 	}
-	// Adds a second 65535 to speed up Eval16(); otherwise x==65535 has to be
+	// Adds a second 65535 to speed up Eval(); otherwise x==65535 has to be
 	// special cased which slows it down.
 	l = append(l, 65535)
 	return l
@@ -54,7 +54,7 @@ func (l LUT) String() string {
 	return b.String()
 }
 
-func (l LUT) Eval16(x uint16) uint16 {
+func (l LUT) Eval(x uint16) uint16 {
 	steps := uint32(len(l) - 2)
 	x32 := uint32(x)
 	index := x32 * steps / 65535

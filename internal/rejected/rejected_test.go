@@ -21,7 +21,7 @@ var curves = []struct {
 }
 
 func TestPointsTrimmedError(t *testing.T) {
-	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator16 {
+	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
 		return MakePointsTrimmed(x0, y0, x1, y1, steps)
 	})
 	// Make sure fitting points are exact.
@@ -29,7 +29,7 @@ func TestPointsTrimmedError(t *testing.T) {
 		// Use default number of steps.
 		p := MakePointsTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
 		for _, point := range p {
-			y := p.Eval16(point.x)
+			y := p.Eval(point.x)
 			if y != point.y {
 				t.Fatalf("At x=%d expected y=%d got %d", point.x, point.y, y)
 			}
@@ -38,7 +38,7 @@ func TestPointsTrimmedError(t *testing.T) {
 }
 
 func TestPointsFullError(t *testing.T) {
-	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator16 {
+	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
 		return MakePointsFull(x0, y0, x1, y1, steps)
 	})
 	// Make sure fitting points are exact.
@@ -46,7 +46,7 @@ func TestPointsFullError(t *testing.T) {
 		// Use default number of steps.
 		p := MakePointsFull(curve.x0, curve.y0, curve.x1, curve.y1, 0)
 		for _, point := range p {
-			y := p.Eval16(point.x)
+			y := p.Eval(point.x)
 			if y != point.y {
 				t.Fatalf("At x=%d expected y=%d got %d", point.x, point.y, y)
 			}
@@ -56,7 +56,7 @@ func TestPointsFullError(t *testing.T) {
 
 func TestTableTrimmedError(t *testing.T) {
 	/*
-		testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator16 {
+		testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
 			return MakeTableTrimmed(x0, y0, x1, y1, steps)
 		})
 	*/
@@ -66,7 +66,7 @@ func TestTableTrimmedError(t *testing.T) {
 		e := MakeTableTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
 		for i, expectedY := range e {
 			x := uint16((i + 1) * 65535 / (len(e) + 2))
-			y := e.Eval16(x)
+			y := e.Eval(x)
 			if y != expectedY {
 				t.Fatalf("At x=%d expected y=%d got %d", x, expectedY, y)
 			}
@@ -75,7 +75,7 @@ func TestTableTrimmedError(t *testing.T) {
 }
 
 func TestTableFullError(t *testing.T) {
-	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator16 {
+	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
 		return MakeTableFull(x0, y0, x1, y1, steps)
 	})
 	// Make sure fitting points are exact.
@@ -87,7 +87,7 @@ func TestTableFullError(t *testing.T) {
 				break
 			}
 			x := uint16(i * 65535 / (len(e) - 2))
-			y := e.Eval16(x)
+			y := e.Eval(x)
 			if y != expectedY {
 				t.Fatalf("At x=%d expected y=%d got %d", x, expectedY, y)
 			}
@@ -95,7 +95,7 @@ func TestTableFullError(t *testing.T) {
 	}
 }
 
-func testError(t *testing.T, maker func(x0, y0, x1, y1 float32, steps uint16) Evaluator16) {
+func testError(t *testing.T, maker func(x0, y0, x1, y1 float32, steps uint16) Evaluator) {
 	for _, curve := range curves {
 		var maxX uint16
 		var maxDelta uint16
@@ -104,7 +104,7 @@ func testError(t *testing.T, maker func(x0, y0, x1, y1 float32, steps uint16) Ev
 		for i := 0; i < 65536; i++ {
 			x := uint16(i)
 			expected := internal.CubicBezier16(curve.x0, curve.y0, curve.x1, curve.y1, x)
-			actual := e.Eval16(x)
+			actual := e.Eval(x)
 			var delta uint16
 			if expected < actual {
 				delta = actual - expected
@@ -119,10 +119,10 @@ func testError(t *testing.T, maker func(x0, y0, x1, y1 float32, steps uint16) Ev
 		if maxDelta > 352 {
 			t.Fatalf("curve=%4v: x=%d delta=%d\n", curve, maxX, maxDelta)
 		}
-		if e.Eval16(0) != 0 {
+		if e.Eval(0) != 0 {
 			t.Fatal("point 0 is not 0")
 		}
-		if e.Eval16(65535) != 65535 {
+		if e.Eval(65535) != 65535 {
 			t.Fatal("point 65535 is not 65535")
 		}
 	}
@@ -133,7 +133,7 @@ func ExampleMakePointsTrimmed() {
 	fmt.Printf("%s\n", p)
 	// Each point is 32 bits.
 	fmt.Printf("%d\n", len(p))
-	fmt.Printf("%d\n", p.Eval16(1000))
+	fmt.Printf("%d\n", p.Eval(1000))
 	// Output:
 	// PointsTrimmed{(0, 0), (4173, 6816), (15141, 23068), (30576, 42467), (48150, 58719), (65535, 65535)}
 	// 4
@@ -145,14 +145,14 @@ func ExampleMakeTableTrimmed() {
 	fmt.Printf("%s\n", t)
 	// Each point is 16 bits.
 	fmt.Printf("%d\n", len(t))
-	fmt.Printf("%d\n", t.Eval16(1000))
+	fmt.Printf("%d\n", t.Eval(1000))
 	// Output:
 	// TableTrimmed{(0, 0), (13107, 17061), (26214, 32004), (39321, 44868), (52428, 55301), (65535, 65535)}
 	// 4
 	// 1562
 }
 
-func ExamplePointsTrimmed_Eval16() {
+func ExamplePointsTrimmed_Eval() {
 	curve := curves[3]
 	const steps = 14
 	b := MakePointsTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
@@ -161,7 +161,7 @@ func ExamplePointsTrimmed_Eval16() {
 		xf := float32(i) / float32(steps-1)
 		yf := internal.CubicBezier(curve.x0, curve.y0, curve.x1, curve.y1, xf)
 		xi := uint16(uint32(i) * 65535 / uint32(steps-1))
-		yi := b.Eval16(xi)
+		yi := b.Eval(xi)
 		yfi := internal.FloatToUint16(yf * 65535.)
 		delta := int(yfi) - int(yi)
 		fmt.Printf("%3d %.3f %5d %.3f %5d %5d %5d %.3f%%\n", i, xf, xi, yf, yfi, yi, delta, float32(delta)*100./65535.)
@@ -184,7 +184,7 @@ func ExamplePointsTrimmed_Eval16() {
 	//  13 1.000 65535 1.000 65535 65535     0 0.000%
 }
 
-func ExampleTableTrimmed_Eval16() {
+func ExampleTableTrimmed_Eval() {
 	curve := curves[3]
 	const steps = 14
 	b := MakeTableTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
@@ -193,7 +193,7 @@ func ExampleTableTrimmed_Eval16() {
 		xf := float32(i) / float32(steps-1)
 		yf := internal.CubicBezier(curve.x0, curve.y0, curve.x1, curve.y1, xf)
 		xi := uint16(uint32(i) * 65535 / uint32(steps-1))
-		yi := b.Eval16(xi)
+		yi := b.Eval(xi)
 		yfi := internal.FloatToUint16(yf * 65535.)
 		delta := int(yfi) - int(yi)
 		fmt.Printf("%3d %.3f %5d %.3f %5d %5d %5d %.3f%%\n", i, xf, xi, yf, yfi, yi, delta, float32(delta)*100./65535.)
@@ -216,7 +216,7 @@ func ExampleTableTrimmed_Eval16() {
 	//  13 1.000 65535 1.000 65535 65535     0 0.000%
 }
 
-var dummyE Evaluator16
+var dummyE Evaluator
 var dummyI uint16
 
 func BenchmarkMakePointsTrimmed_8(b *testing.B) {
@@ -317,122 +317,122 @@ func BenchmarkMakeTableFull_130(b *testing.B) {
 
 //
 
-func BenchmarkPointsTrimmed_Eval16_1000(b *testing.B) {
+func BenchmarkPointsTrimmed_Eval_1000(b *testing.B) {
 	p := MakePointsTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(1000)
+		r = p.Eval(1000)
 	}
 	dummyI = r
 }
 
-func BenchmarkPointsTrimmed_Eval16_32767(b *testing.B) {
+func BenchmarkPointsTrimmed_Eval_32767(b *testing.B) {
 	p := MakePointsTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(32767)
+		r = p.Eval(32767)
 	}
 	dummyI = r
 }
 
-func BenchmarkPointsTrimmed_Eval16_65435(b *testing.B) {
+func BenchmarkPointsTrimmed_Eval_65435(b *testing.B) {
 	p := MakePointsTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(65435)
+		r = p.Eval(65435)
 	}
 	dummyI = r
 }
 
-func BenchmarkPointsFull_Eval16_1000(b *testing.B) {
+func BenchmarkPointsFull_Eval_1000(b *testing.B) {
 	p := MakePointsFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(1000)
+		r = p.Eval(1000)
 	}
 	dummyI = r
 }
 
-func BenchmarkPointsFull_Eval16_32767(b *testing.B) {
+func BenchmarkPointsFull_Eval_32767(b *testing.B) {
 	p := MakePointsFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(32767)
+		r = p.Eval(32767)
 	}
 	dummyI = r
 }
 
-func BenchmarkPointsFull_Eval16_65435(b *testing.B) {
+func BenchmarkPointsFull_Eval_65435(b *testing.B) {
 	p := MakePointsFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(65435)
+		r = p.Eval(65435)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableTrimmed_Eval16_1000(b *testing.B) {
+func BenchmarkTableTrimmed_Eval_1000(b *testing.B) {
 	t := MakeTableTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(1000)
+		r = t.Eval(1000)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableTrimmed_Eval16_32767(b *testing.B) {
+func BenchmarkTableTrimmed_Eval_32767(b *testing.B) {
 	t := MakeTableTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(32767)
+		r = t.Eval(32767)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableTrimmed_Eval16_65435(b *testing.B) {
+func BenchmarkTableTrimmed_Eval_65435(b *testing.B) {
 	t := MakeTableTrimmed(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(65435)
+		r = t.Eval(65435)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableFull_Eval16_1000(b *testing.B) {
+func BenchmarkTableFull_Eval_1000(b *testing.B) {
 	t := MakeTableFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(1000)
+		r = t.Eval(1000)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableFull_Eval16_32767(b *testing.B) {
+func BenchmarkTableFull_Eval_32767(b *testing.B) {
 	t := MakeTableFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(32767)
+		r = t.Eval(32767)
 	}
 	dummyI = r
 }
 
-func BenchmarkTableFull_Eval16_65435(b *testing.B) {
+func BenchmarkTableFull_Eval_65435(b *testing.B) {
 	t := MakeTableFull(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = t.Eval16(65435)
+		r = t.Eval(65435)
 	}
 	dummyI = r
 }
@@ -442,7 +442,7 @@ func BenchmarkPrecise(b *testing.B) {
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = p.Eval16(1000)
+		r = p.Eval(1000)
 	}
 	dummyI = r
 }

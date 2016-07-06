@@ -13,14 +13,14 @@ import (
 )
 
 // Evaluator exposes a function in the uint16 domain.
-type Evaluator16 interface {
-	// Eval16 evaluates a function taking a uint16 as input and returning a
+type Evaluator interface {
+	// Eval evaluates a function taking a uint16 as input and returning a
 	// uint16.
 	//
 	// There is no provision for overshooting.
 	//
-	// Evali16 should be idempotent.
-	Eval16(x uint16) uint16
+	// Eval should be idempotent.
+	Eval(x uint16) uint16
 }
 
 // Precise is the precise evaluation of a cubic bezier curve in the uint16
@@ -38,7 +38,7 @@ func (p *Precise) String() string {
 	return fmt.Sprintf("Precise{%g, %g, %g, %g}", p.x0, p.y0, p.x1, p.y1)
 }
 
-func (p *Precise) Eval16(x uint16) uint16 {
+func (p *Precise) Eval(x uint16) uint16 {
 	return internal.CubicBezier16(p.x0, p.y0, p.x1, p.y1, x)
 }
 
@@ -132,7 +132,7 @@ func (p PointsTrimmed) String() string {
 	return b.String()
 }
 
-func (p PointsTrimmed) Eval16(x uint16) uint16 {
+func (p PointsTrimmed) Eval(x uint16) uint16 {
 	// For very short table, it's faster to do a linear search. The trade off is
 	// CPU architecture dependent.
 	for i, p1 := range p {
@@ -230,7 +230,7 @@ func (p PointsFull) String() string {
 	return b.String()
 }
 
-func (p PointsFull) Eval16(x uint16) uint16 {
+func (p PointsFull) Eval(x uint16) uint16 {
 	// For very short table, it's faster to do a linear search. The trade off is
 	// CPU architecture dependent.
 	// TODO(maruel): Implement binary search and benchmark.
@@ -262,9 +262,9 @@ type TableTrimmed []uint16
 // for fast cubic bezier curve evaluation for the curve
 // [(0, 0), (x0, y0), (x1, y1), (65535, 65535)].
 //
-// This function is slower than MakePoints but Eval16() calls are faster.
+// This function is slower than MakePoints but Eval() calls are faster.
 // TableTrimmed uses half of the memory of Points. It is meant to be used when
-// a significant number of calls to Eval16() will be done.
+// a significant number of calls to Eval() will be done.
 //
 // Memory allocation is 2*(steps-2) bytes.
 func MakeTableTrimmed(x0, y0, x1, y1 float32, steps uint16) TableTrimmed {
@@ -293,7 +293,7 @@ func (t TableTrimmed) String() string {
 	return b.String()
 }
 
-func (t TableTrimmed) Eval16(x uint16) uint16 {
+func (t TableTrimmed) Eval(x uint16) uint16 {
 	// Points 0 and 65535 are omitted from the table.
 	steps := uint32(len(t) + 2)
 	x32 := uint32(x)
@@ -334,7 +334,7 @@ func MakeTableFull(x0, y0, x1, y1 float32, steps uint16) TableFull {
 	for i := range t {
 		t[i] = internal.FloatToUint16(internal.CubicBezier(x0, y0, x1, y1, float32(i)*stepsm1) * 65535.)
 	}
-	// Adds a second 65535 to speed up Eval16(); otherwise x==65535 has to be
+	// Adds a second 65535 to speed up Eval(); otherwise x==65535 has to be
 	// special cased which slows it down.
 	t = append(t, 65535)
 	return t
@@ -357,7 +357,7 @@ func (t TableFull) String() string {
 	return b.String()
 }
 
-func (t TableFull) Eval16(x uint16) uint16 {
+func (t TableFull) Eval(x uint16) uint16 {
 	steps := uint32(len(t) - 2)
 	x32 := uint32(x)
 	index := x32 * steps / 65535

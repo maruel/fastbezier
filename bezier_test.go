@@ -24,10 +24,10 @@ func TestLUT(t *testing.T) {
 	for _, curve := range curves {
 		var maxX uint16
 		var maxDelta uint16
-		l := MakeLUT(curve.x0, curve.y0, curve.x1, curve.y1, 16)
+		l := Make(curve.x0, curve.y0, curve.x1, curve.y1, 16)
 		for i := 0; i < 65536; i++ {
 			expected := internal.CubicBezier16(curve.x0, curve.y0, curve.x1, curve.y1, uint16(i))
-			actual := l.Eval16(uint16(i))
+			actual := l.Eval(uint16(i))
 			var delta uint16
 			if expected < actual {
 				delta = actual - expected
@@ -42,22 +42,22 @@ func TestLUT(t *testing.T) {
 		if maxDelta > 427 {
 			t.Fatalf("curve=%4v: x=%d delta=%d\n", curve, maxX, maxDelta)
 		}
-		if l.Eval16(0) != 0 {
+		if l.Eval(0) != 0 {
 			t.Fatal("point 0 is not 0")
 		}
-		if l.Eval16(65535) != 65535 {
+		if l.Eval(65535) != 65535 {
 			t.Fatal("point 65535 is not 65535")
 		}
 
 		// Make sure fitting points are exact.
 		// Use default number of steps.
-		l = MakeLUT(curve.x0, curve.y0, curve.x1, curve.y1, 0)
+		l = Make(curve.x0, curve.y0, curve.x1, curve.y1, 0)
 		for i, expectedY := range l {
 			if i == len(l)-1 {
 				break
 			}
 			x := uint16(i * 65535 / (len(l) - 2))
-			y := l.Eval16(x)
+			y := l.Eval(x)
 			t.Logf("x=%d expected y=%d y=%d", x, expectedY, y)
 			if y != expectedY {
 				t.Fatalf("At x=%d expected y=%d got %d\n%s", x, expectedY, y, l)
@@ -68,27 +68,27 @@ func TestLUT(t *testing.T) {
 	}
 }
 
-func ExampleMakeLUT() {
-	l := MakeLUT(0, 0, 0.58, 1, 6)
+func ExampleMake() {
+	l := Make(0, 0, 0.58, 1, 6)
 	fmt.Printf("%s\n", l)
 	// Each point is 16 bits.
 	fmt.Printf("%d\n", len(l))
-	fmt.Printf("%d\n", l.Eval16(1000))
+	fmt.Printf("%d\n", l.Eval(1000))
 	// Output:
 	// LUT{(0, 0), (13107, 20209), (26214, 37413), (39321, 51454), (52428, 61453), (65535, 65535)}
 	// 7
 	// 1541
 }
 
-func ExampleLUT_Eval16() {
+func ExampleLUT_Eval() {
 	const steps = 14
-	l := MakeLUT(0.42, 0, 0.58, 1, 0)
+	l := Make(0.42, 0, 0.58, 1, 0)
 	fmt.Println("  i    xf    xi   yfi    yf    yi delta   error")
 	for i := 0; i < steps; i++ {
 		xf := float32(i) / float32(steps-1)
 		yf := internal.CubicBezier(0.42, 0, 0.58, 1, xf)
 		xi := uint16(uint32(i) * 65535 / uint32(steps-1))
-		yi := l.Eval16(xi)
+		yi := l.Eval(xi)
 		yfi := internal.FloatToUint16(yf * 65535.)
 		delta := int(yfi) - int(yi)
 		fmt.Printf("%3d %.3f %5d %.3f %5d %5d %5d %6.3f%%\n", i, xf, xi, yf, yfi, yi, delta, float32(delta)*100./65535.)
@@ -114,56 +114,56 @@ func ExampleLUT_Eval16() {
 var dummyL LUT
 var dummyI uint16
 
-func BenchmarkMakeLUT_8(b *testing.B) {
+func BenchmarkMake_8(b *testing.B) {
 	var l LUT
 	for n := 0; n < b.N; n++ {
-		l = MakeLUT(0.42, 0, 0.58, 1, 8)
+		l = Make(0.42, 0, 0.58, 1, 8)
 	}
 	dummyL = l
 }
 
-func BenchmarkMakeLUT_32(b *testing.B) {
+func BenchmarkMake_32(b *testing.B) {
 	var l LUT
 	for n := 0; n < b.N; n++ {
-		l = MakeLUT(0.42, 0, 0.58, 1, 32)
+		l = Make(0.42, 0, 0.58, 1, 32)
 	}
 	dummyL = l
 }
 
-func BenchmarkMakeLUT_130(b *testing.B) {
+func BenchmarkMake_130(b *testing.B) {
 	var l LUT
 	for n := 0; n < b.N; n++ {
-		l = MakeLUT(0.42, 0, 0.58, 1, 128)
+		l = Make(0.42, 0, 0.58, 1, 128)
 	}
 	dummyL = l
 }
 
-func BenchmarkLUT_Eval16_1000(b *testing.B) {
-	l := MakeLUT(0.42, 0, 0.58, 1, 0)
+func BenchmarkLUT_Eval_1000(b *testing.B) {
+	l := Make(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = l.Eval16(1000)
+		r = l.Eval(1000)
 	}
 	dummyI = r
 }
 
-func BenchmarkLUT_Eval16_32767(b *testing.B) {
-	l := MakeLUT(0.42, 0, 0.58, 1, 0)
+func BenchmarkLUT_Eval_32767(b *testing.B) {
+	l := Make(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = l.Eval16(32767)
+		r = l.Eval(32767)
 	}
 	dummyI = r
 }
 
-func BenchmarkLUT_Eval16_65435(b *testing.B) {
-	l := MakeLUT(0.42, 0, 0.58, 1, 0)
+func BenchmarkLUT_Eval_65435(b *testing.B) {
+	l := Make(0.42, 0, 0.58, 1, 0)
 	r := uint16(0)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		r = l.Eval16(65435)
+		r = l.Eval(65435)
 	}
 	dummyI = r
 }
