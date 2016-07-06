@@ -199,7 +199,6 @@ func MakePointsFull(x0, y0, x1, y1 float32, steps uint16) PointsFull {
 	fdddX := fddd_per_2X + fddd_per_2X
 	fdddY := fddd_per_2Y + fddd_per_2Y
 
-	// Skip first and last points; (0, 0) and (65535, 65535).
 	p := make(PointsFull, steps)
 	for i := range p {
 		p[i] = point{internal.FloatToUint16(fX * 65535.), internal.FloatToUint16(fY * 65535.)}
@@ -273,7 +272,8 @@ func MakeTableTrimmed(x0, y0, x1, y1 float32, steps uint16) TableTrimmed {
 		// unnecessary error handling.
 		steps = 32
 	}
-	stepsm1 := 1. / float32(steps)
+	stepsm1 := 1. / float32(steps-1)
+	// 0 and 65535 are omitted.
 	t := make(TableTrimmed, steps-2)
 	for i := range t {
 		t[i] = internal.FloatToUint16(internal.CubicBezier(x0, y0, x1, y1, float32(i+1)*stepsm1) * 65535.)
@@ -295,21 +295,21 @@ func (t TableTrimmed) String() string {
 
 func (t TableTrimmed) Eval(x uint16) uint16 {
 	// Points 0 and 65535 are omitted from the table.
-	steps := uint32(len(t) + 2)
+	steps := uint32(len(t) + 1)
 	x32 := uint32(x)
-	switch index := x32 * steps / 65535; {
-	case index == 0:
+	switch index := x32 * steps / 65535; index {
+	case 0:
 		// The first point (0, 0) is not stored.
-		nextX := (index + 1) * 65535 / steps
-		return uint16(uint32(t[0]) * x32 / nextX)
-	case index == steps:
-		return 65535
-	case index >= steps-2:
+		return uint16(uint32(t[0]) * x32 / (65535 / steps))
+	case steps - 1:
 		// The last point (65535, 65535) is not stored.
 		baseX := index * 65535 / steps
 		a := uint32(t[len(t)-1]) * (65535 - x32)
 		b := uint32(65535) * (x32 - baseX)
 		return uint16((a + b) / (65535 - baseX))
+	case steps:
+		// For x==65535.
+		return 65535
 	default:
 		nextX := (index + 1) * 65535 / steps
 		baseX := index * 65535 / steps
@@ -329,13 +329,13 @@ func MakeTableFull(x0, y0, x1, y1 float32, steps uint16) TableFull {
 		// unnecessary error handling.
 		steps = 32
 	}
+	// Adds a second 65535 to speed up Eval(); otherwise x==65535 has to be
+	// special cased which slows Eval() down.
 	stepsm1 := 1. / float32(steps-1)
 	t := make(TableFull, steps, steps+1)
 	for i := range t {
 		t[i] = internal.FloatToUint16(internal.CubicBezier(x0, y0, x1, y1, float32(i)*stepsm1) * 65535.)
 	}
-	// Adds a second 65535 to speed up Eval(); otherwise x==65535 has to be
-	// special cased which slows it down.
 	t = append(t, 65535)
 	return t
 }

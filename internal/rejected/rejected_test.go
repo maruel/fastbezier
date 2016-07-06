@@ -20,7 +20,41 @@ var curves = []struct {
 	{0, 0, 0.58, 1},      // TransitionEaseOut
 }
 
-func TestPointsTrimmedError(t *testing.T) {
+func TestPointsEqual(t *testing.T) {
+	// Make sure both are equal.
+	for _, curve := range curves {
+		p1 := MakePointsTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
+		p2 := MakePointsFull(curve.x0, curve.y0, curve.x1, curve.y1, 0)
+		for i := 0; i <= 65535; i++ {
+			x := uint16(i)
+			y1 := p1.Eval(x)
+			y2 := p2.Eval(x)
+			if y1 != y2 {
+				t.Errorf("At x=%d; y %d != %d", x, y1, y2)
+			}
+		}
+	}
+}
+
+func TestTableEqual(t *testing.T) {
+	// Make sure both are equal.
+	for _, curve := range curves {
+		p1 := MakeTableTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
+		p2 := MakeTableFull(curve.x0, curve.y0, curve.x1, curve.y1, 0)
+		for i := 0; i <= 65535; i++ {
+			x := uint16(i)
+			y1 := p1.Eval(x)
+			y2 := p2.Eval(x)
+			if y1 != y2 {
+				t.Fatalf("At x=%d; y %d != %d", x, y1, y2)
+			}
+		}
+	}
+}
+
+// At this point, only one of each for Points and Table needs to be tested.
+
+func TestPointsError(t *testing.T) {
 	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
 		return MakePointsTrimmed(x0, y0, x1, y1, steps)
 	})
@@ -37,56 +71,16 @@ func TestPointsTrimmedError(t *testing.T) {
 	}
 }
 
-func TestPointsFullError(t *testing.T) {
+func TestTableError(t *testing.T) {
 	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
-		return MakePointsFull(x0, y0, x1, y1, steps)
+		return MakeTableTrimmed(x0, y0, x1, y1, steps)
 	})
-	// Make sure fitting points are exact.
-	for _, curve := range curves {
-		// Use default number of steps.
-		p := MakePointsFull(curve.x0, curve.y0, curve.x1, curve.y1, 0)
-		for _, point := range p {
-			y := p.Eval(point.x)
-			if y != point.y {
-				t.Fatalf("At x=%d expected y=%d got %d", point.x, point.y, y)
-			}
-		}
-	}
-}
-
-func TestTableTrimmedError(t *testing.T) {
-	/*
-		testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
-			return MakeTableTrimmed(x0, y0, x1, y1, steps)
-		})
-	*/
 	// Make sure fitting points are exact.
 	for _, curve := range curves {
 		// Use default number of steps.
 		e := MakeTableTrimmed(curve.x0, curve.y0, curve.x1, curve.y1, 0)
 		for i, expectedY := range e {
-			x := uint16((i + 1) * 65535 / (len(e) + 2))
-			y := e.Eval(x)
-			if y != expectedY {
-				t.Fatalf("At x=%d expected y=%d got %d", x, expectedY, y)
-			}
-		}
-	}
-}
-
-func TestTableFullError(t *testing.T) {
-	testError(t, func(x0, y0, x1, y1 float32, steps uint16) Evaluator {
-		return MakeTableFull(x0, y0, x1, y1, steps)
-	})
-	// Make sure fitting points are exact.
-	for _, curve := range curves {
-		// Use default number of steps.
-		e := MakeTableFull(curve.x0, curve.y0, curve.x1, curve.y1, 0)
-		for i, expectedY := range e {
-			if i == len(e)-1 {
-				break
-			}
-			x := uint16(i * 65535 / (len(e) - 2))
+			x := uint16((i + 1) * 65535 / (len(e) + 1))
 			y := e.Eval(x)
 			if y != expectedY {
 				t.Fatalf("At x=%d expected y=%d got %d", x, expectedY, y)
@@ -147,9 +141,9 @@ func ExampleMakeTableTrimmed() {
 	fmt.Printf("%d\n", len(t))
 	fmt.Printf("%d\n", t.Eval(1000))
 	// Output:
-	// TableTrimmed{(0, 0), (13107, 17061), (26214, 32004), (39321, 44868), (52428, 55301), (65535, 65535)}
+	// TableTrimmed{(0, 0), (13107, 20209), (26214, 37413), (39321, 51454), (52428, 61453), (65535, 65535)}
 	// 4
-	// 1562
+	// 1541
 }
 
 func ExamplePointsTrimmed_Eval() {
@@ -201,17 +195,17 @@ func ExampleTableTrimmed_Eval() {
 	// Output:
 	//   i    xf    xi   yfi    yf    yi delta  %
 	//   0 0.000     0 0.000     0     0     0 0.000%
-	//   1 0.077  5041 0.125  8180  8171     9 0.014%
-	//   2 0.154 10082 0.242 15830 15827     3 0.005%
-	//   3 0.231 15123 0.352 23044 23035     9 0.014%
-	//   4 0.308 20164 0.455 29835 29831     4 0.006%
-	//   5 0.385 25205 0.552 36195 36186     9 0.014%
-	//   6 0.462 30246 0.642 42098 42090     8 0.012%
-	//   7 0.538 35288 0.725 47510 47502     8 0.012%
-	//   8 0.615 40329 0.799 52383 52372    11 0.017%
-	//   9 0.692 45370 0.864 56652 56645     7 0.011%
-	//  10 0.769 50411 0.919 60236 60220    16 0.024%
-	//  11 0.846 55452 0.962 63022 63015     7 0.011%
+	//   1 0.077  5041 0.125  8180  8169    11 0.017%
+	//   2 0.154 10082 0.242 15830 15822     8 0.012%
+	//   3 0.231 15123 0.352 23044 23038     6 0.009%
+	//   4 0.308 20164 0.455 29835 29825    10 0.015%
+	//   5 0.385 25205 0.552 36195 36190     5 0.008%
+	//   6 0.462 30246 0.642 42098 42088    10 0.015%
+	//   7 0.538 35288 0.725 47510 47500    10 0.015%
+	//   8 0.615 40329 0.799 52383 52379     4 0.006%
+	//   9 0.692 45370 0.864 56652 56637    15 0.023%
+	//  10 0.769 50411 0.919 60236 60226    10 0.015%
+	//  11 0.846 55452 0.962 63022 63007    15 0.023%
 	//  12 0.923 60493 0.990 64860 64835    25 0.038%
 	//  13 1.000 65535 1.000 65535 65535     0 0.000%
 }
