@@ -31,6 +31,10 @@ func Make(x0, y0, x1, y1 float32, steps uint16) LUT {
 		// unnecessary error handling.
 		steps = 32
 	}
+
+	// TODO(maruel): Overshoot the curve inversion points to reduce the worst
+	// case error.
+
 	stepsm1 := 1. / float32(steps-1)
 	l := make(LUT, steps, steps+1)
 	for i := range l {
@@ -55,6 +59,9 @@ func MakeFast(x0, y0, x1, y1 float32, steps uint16) LUT {
 	}
 	stepsm1 := 1. / float32(steps-1)
 	l := make(LUT, steps, steps+1)
+
+	// TODO(maruel): Overshoot the curve inversion points to reduce the worst
+	// case error.
 
 	// Use a fast version that outputs (x, y) values incrementally. Use a 2x
 	// resolution to get a good enough precision, especially a curvature
