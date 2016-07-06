@@ -70,7 +70,7 @@ func MakePointsTrimmed(x0, y0, x1, y1 float32, steps uint16) PointsTrimmed {
 		steps = 32
 	}
 
-	// Use a fast version that outputs [x, y] values incrementally.
+	// Use a fast version that outputs (x, y) values incrementally.
 	// https://www.niksula.hut.fi/~hkankaan/Homepages/bezierfast.html
 	// Constants
 	t := 1. / float32(steps-1)
@@ -163,7 +163,7 @@ func MakePointsFull(x0, y0, x1, y1 float32, steps uint16) PointsFull {
 		steps = 32
 	}
 
-	// Use a fast version that outputs [x, y] values incrementally.
+	// Use a fast version that outputs (x, y) values incrementally.
 	// https://www.niksula.hut.fi/~hkankaan/Homepages/bezierfast.html
 	// Constants
 	t := 1. / float32(steps-1)
@@ -254,7 +254,7 @@ func (p PointsFull) Eval(x uint16) uint16 {
 // Each point is spaced uniformly across the X axis.
 //
 // It is constrained over the range [0, 65535] for both x and y. It forces
-// points [0, 0] and [65535, 65535].
+// points (0, 0) and (65535, 65535).
 type TableTrimmed []uint16
 
 // MakeTableTrimmed returns a TableTrimmed object that contains a lookup table

@@ -19,6 +19,7 @@ func compare() {
 	evaluators := []rejected.Evaluator{
 		rejected.MakePrecise(0.42, 0, 0.58, 1),
 		fastbezier.Make(0.42, 0, 0.58, 1, 0),
+		fastbezier.MakeFast(0.42, 0, 0.58, 1, 0),
 		rejected.MakePointsTrimmed(0.42, 0, 0.58, 1, 0),
 		rejected.MakePointsFull(0.42, 0, 0.58, 1, 0),
 		rejected.MakeTableTrimmed(0.42, 0, 0.58, 1, 0),
@@ -27,7 +28,7 @@ func compare() {
 	for _, e := range evaluators {
 		fmt.Printf("%s\n", e)
 	}
-	fmt.Printf("     x   Slow   LUT  Pnts PtsFl Table TblFl     LUT  Pnts PtsFl Table TblFl        LUT   Points  PtsFull    Table  TablFll\n")
+	fmt.Printf("     x   Slow   LUT  LUTf  Pnts PtsFl Table TblFl     LUT  LUTf  Pnts PtsFl Table TblFl        LUT  LUTf   Points  PtsFull    Table  TablFll\n")
 	r := make([]uint16, len(evaluators))
 	delta := make([]int, len(evaluators)-1)
 	relDelta := make([]string, len(evaluators)-1)

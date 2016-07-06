@@ -111,7 +111,7 @@ func testError(t *testing.T, maker func(x0, y0, x1, y1 float32, steps uint16) Ev
 			}
 		}
 		if maxDelta > 352 {
-			t.Fatalf("curve=%4v: x=%d delta=%d\n", curve, maxX, maxDelta)
+			t.Fatalf("curve=%4v: x=%d delta=%d", curve, maxX, maxDelta)
 		}
 		if e.Eval(0) != 0 {
 			t.Fatal("point 0 is not 0")
