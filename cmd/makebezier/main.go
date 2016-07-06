@@ -12,55 +12,11 @@ import (
 	"strconv"
 
 	"github.com/maruel/fastbezier"
-	"github.com/maruel/fastbezier/internal/rejected"
 )
 
-func compare() {
-	evaluators := []rejected.Evaluator{
-		rejected.MakePrecise(0.42, 0, 0.58, 1),
-		fastbezier.Make(0.42, 0, 0.58, 1, 0),
-		fastbezier.MakeFast(0.42, 0, 0.58, 1, 0),
-		rejected.MakePointsTrimmed(0.42, 0, 0.58, 1, 0),
-		rejected.MakePointsFull(0.42, 0, 0.58, 1, 0),
-		rejected.MakeTableTrimmed(0.42, 0, 0.58, 1, 0),
-		rejected.MakeTableFull(0.42, 0, 0.58, 1, 0),
-	}
-	for _, e := range evaluators {
-		fmt.Printf("%s\n", e)
-	}
-	fmt.Printf("     x   Slow   LUT  LUTf  Pnts PtsFl Table TblFl     LUT  LUTf  Pnts PtsFl Table TblFl        LUT  LUTf   Points  PtsFull    Table  TablFll\n")
-	r := make([]uint16, len(evaluators))
-	delta := make([]int, len(evaluators)-1)
-	relDelta := make([]string, len(evaluators)-1)
-	const steps = 50
-	for i := 0; i <= steps; i++ {
-		x := i * 65535 / steps
-		for j, e := range evaluators {
-			r[j] = e.Eval(uint16(x))
-			if j != 0 {
-				delta[j-1] = int(r[0]) - int(r[j])
-				if delta[j-1] == 0 {
-					relDelta[j-1] = "0"
-				} else {
-					relDelta[j-1] = fmt.Sprintf("%2.2f%%", 100.*float32(delta[j-1])/65535.)
-				}
-			}
-		}
-		fmt.Printf("%6d %5v %5v %8v\n", x, r, delta, relDelta)
-	}
-}
-
 func mainImpl() error {
-	compareF := flag.Bool("compare", false, "compare evaluators")
 	flag.Parse()
 
-	if *compareF {
-		if flag.NArg() != 0 {
-			return errors.New("do not supply values with -compare")
-		}
-		compare()
-		return nil
-	}
 	if flag.NArg() != 5 {
 		return errors.New("supply 5 values")
 	}
